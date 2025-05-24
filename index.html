@@ -69,7 +69,7 @@
       100% { background-color: #ffb6c1; }
     }
     .cell span {
-      pointer-events: none; /* Fix: ensure span doesn't block clicks */
+      pointer-events: none;
     }
     #message {
       display: none;
@@ -121,31 +121,22 @@
       "MOMMY", "DADDY", "HUGS", "LOVE", "CUTE", "SNUGGLE", "SMILE",
       "TINY", "MILK", "JOY", "SWEET", "NAP"
     ];
-    const words = [...rainbowSequence, ...otherWords];
-    
-    // Shuffle otherWords and place rainbow words in order
+
     function shuffle(arr) {
       for (let i = arr.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [arr[i], arr[j]] = [arr[j], arr[i]];
       }
     }
+
     shuffle(otherWords);
 
-    const finalGridWords = [];
-    let rIndex = 0;
-    for (let i = 0; i < 16; i++) {
-      if (rIndex < rainbowSequence.length) {
-        finalGridWords.push(rainbowSequence[rIndex++]);
-      } else {
-        finalGridWords.push(otherWords.pop());
-      }
-    }
-    shuffle(finalGridWords);
+    const finalWords = [...rainbowSequence, ...otherWords.slice(0, 12)];
+    shuffle(finalWords);
 
-    let nextRevealIndex = 0;
+    let nextRainbowIndex = 0;
 
-    finalGridWords.forEach(word => {
+    finalWords.forEach(word => {
       const cell = document.createElement('div');
       cell.className = 'cell';
       const span = document.createElement('span');
@@ -161,24 +152,46 @@
       cell.addEventListener('click', () => {
         if (cell.classList.contains('revealed')) return;
 
-        // If it's a rainbow word, enforce order
-        if (rainbowSequence.includes(word)) {
-          if (word !== rainbowSequence[nextRevealIndex]) return;
-          nextRevealIndex++;
-        }
+        const expected = rainbowSequence[nextRainbowIndex];
 
-        cell.classList.add('revealed');
-        span.style.visibility = 'visible';
-
-        // Final reveal (BOY)
-        if (word === "BOY") {
-          message.style.display = 'block';
-          startConfetti();
+        // Smart rainbow logic
+        if (rainbowSequence.includes(span.textContent)) {
+          if (span.textContent === expected) {
+            revealCell(cell, span);
+          } else {
+            // Swap in correct rainbow word
+            span.textContent = expected;
+            cell.classList.add('rainbow');
+            span.classList.add('rainbowText');
+            revealCell(cell, span);
+          }
+        } else {
+          // Replace normal word with rainbow word if it's time
+          if (nextRainbowIndex < rainbowSequence.length) {
+            span.textContent = expected;
+            cell.classList.add('rainbow');
+            span.classList.add('rainbowText');
+            revealCell(cell, span);
+          } else {
+            revealCell(cell, span);
+          }
         }
       });
     });
 
-    // Confetti effect
+    function revealCell(cell, span) {
+      span.style.visibility = 'visible';
+      cell.classList.add('revealed');
+      if (rainbowSequence.includes(span.textContent)) {
+        nextRainbowIndex++;
+        if (span.textContent === "BOY") {
+          message.style.display = 'block';
+          startConfetti();
+        }
+      }
+    }
+
+    // Confetti logic
     let confettiParticles = [];
     function startConfetti() {
       resizeCanvas();
@@ -200,7 +213,6 @@
       confettiParticles.forEach(p => {
         ctx.beginPath();
         ctx.fillStyle = p.color;
-        ctx.moveTo(p.x, p.y);
         ctx.ellipse(p.x, p.y, p.r, p.r / 2, p.tilt, 0, Math.PI * 2);
         ctx.fill();
         p.y += Math.cos(p.d);
@@ -217,6 +229,7 @@
       confettiCanvas.width = window.innerWidth;
       confettiCanvas.height = window.innerHeight;
     }
+
     window.addEventListener('resize', resizeCanvas);
   </script>
 </body>
