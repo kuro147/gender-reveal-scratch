@@ -5,10 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Trishia & Asraf Gender Reveal Scratch</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
-    body, html {
+    * { box-sizing: border-box; }
+    html, body {
       margin: 0;
       padding: 0;
       font-family: Arial, sans-serif;
@@ -35,7 +33,6 @@
       grid-template-columns: repeat(4, 1fr);
       gap: 5px;
       max-width: 90vw;
-      margin: 0 auto;
     }
     .cell {
       background: silver;
@@ -70,6 +67,10 @@
     }
     .cell span {
       pointer-events: none;
+      visibility: hidden;
+    }
+    .cell.revealed span {
+      visibility: visible;
     }
     #message {
       display: none;
@@ -111,94 +112,74 @@
   <canvas id="confettiCanvas"></canvas>
 
   <script>
-    const grid = document.getElementById('grid');
-    const message = document.getElementById('message');
-    const confettiCanvas = document.getElementById('confettiCanvas');
-    const ctx = confettiCanvas.getContext('2d');
-
-    const rainbowSequence = ["IT'S", "A", "BABY", "BOY"];
-    const otherWords = [
-      "MOMMY", "DADDY", "HUGS", "LOVE", "CUTE", "SNUGGLE", "SMILE",
-      "TINY", "MILK", "JOY", "SWEET", "NAP"
+    const rainbowWords = ["IT'S", "A", "BABY"];
+    const finalWord = "BOY";
+    const babyWords = [
+      "MOMMY", "DADDY", "HUGS", "LOVE", "CUTE", "SNUGGLE",
+      "SMILE", "TINY", "MILK", "JOY", "SWEET", "NAP"
     ];
 
-    function shuffle(arr) {
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
-    }
+    const grid = document.getElementById('grid');
+    const message = document.getElementById('message');
+    const canvas = document.getElementById('confettiCanvas');
+    const ctx = canvas.getContext('2d');
 
-    shuffle(otherWords);
+    let finalRevealed = false;
 
-    const finalWords = [...rainbowSequence, ...otherWords.slice(0, 12)];
-    shuffle(finalWords);
+    // Combine words and shuffle positions
+    const allWords = [...rainbowWords, ...babyWords];
+    shuffle(allWords);
+    allWords.splice(Math.floor(Math.random() * 16), 0, finalWord); // Ensure BOY is last to reveal
+    allWords.length = 16;
 
-    let nextRainbowIndex = 0;
-
-    finalWords.forEach(word => {
+    allWords.forEach((word, index) => {
       const cell = document.createElement('div');
       cell.className = 'cell';
       const span = document.createElement('span');
       span.textContent = word;
-      if (rainbowSequence.includes(word)) {
-        cell.classList.add('rainbow');
+      if ([...rainbowWords, finalWord].includes(word)) {
         span.classList.add('rainbowText');
+        cell.classList.add('rainbow');
       }
-      span.style.visibility = 'hidden';
       cell.appendChild(span);
       grid.appendChild(cell);
 
       cell.addEventListener('click', () => {
         if (cell.classList.contains('revealed')) return;
 
-        const expected = rainbowSequence[nextRainbowIndex];
-
-        // Smart rainbow logic
-        if (rainbowSequence.includes(span.textContent)) {
-          if (span.textContent === expected) {
-            revealCell(cell, span);
-          } else {
-            // Swap in correct rainbow word
-            span.textContent = expected;
-            cell.classList.add('rainbow');
-            span.classList.add('rainbowText');
-            revealCell(cell, span);
+        if (word === finalWord) {
+          if (!finalRevealed) {
+            cell.classList.add('revealed');
+            finalRevealed = true;
+            message.style.display = 'block';
+            startConfetti();
           }
         } else {
-          // Replace normal word with rainbow word if it's time
-          if (nextRainbowIndex < rainbowSequence.length) {
-            span.textContent = expected;
-            cell.classList.add('rainbow');
-            span.classList.add('rainbowText');
-            revealCell(cell, span);
-          } else {
-            revealCell(cell, span);
-          }
+          cell.classList.add('revealed');
         }
       });
     });
 
-    function revealCell(cell, span) {
-      span.style.visibility = 'visible';
-      cell.classList.add('revealed');
-      if (rainbowSequence.includes(span.textContent)) {
-        nextRainbowIndex++;
-        if (span.textContent === "BOY") {
-          message.style.display = 'block';
-          startConfetti();
-        }
+    // Shuffle function
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
       }
     }
 
-    // Confetti logic
+    // Confetti
     let confettiParticles = [];
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
     function startConfetti() {
       resizeCanvas();
       for (let i = 0; i < 100; i++) {
         confettiParticles.push({
-          x: Math.random() * window.innerWidth,
-          y: Math.random() * window.innerHeight,
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
           r: Math.random() * 6 + 4,
           d: Math.random() * 100 + 10,
           color: "hsl(" + Math.random() * 360 + ", 100%, 50%)",
@@ -209,7 +190,7 @@
     }
 
     function drawConfetti() {
-      ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       confettiParticles.forEach(p => {
         ctx.beginPath();
         ctx.fillStyle = p.color;
@@ -217,17 +198,12 @@
         ctx.fill();
         p.y += Math.cos(p.d);
         p.x += Math.sin(p.d);
-        if (p.y > window.innerHeight) {
+        if (p.y > canvas.height) {
           p.y = 0;
-          p.x = Math.random() * window.innerWidth;
+          p.x = Math.random() * canvas.width;
         }
       });
       requestAnimationFrame(drawConfetti);
-    }
-
-    function resizeCanvas() {
-      confettiCanvas.width = window.innerWidth;
-      confettiCanvas.height = window.innerHeight;
     }
 
     window.addEventListener('resize', resizeCanvas);
