@@ -57,6 +57,9 @@
     .cell.revealed {
       cursor: default;
     }
+    .cell.revealed:not(.rainbowFlashing) {
+      background-color: white;
+    }
     .cell span {
       visibility: hidden;
     }
@@ -192,16 +195,27 @@
           showReveal();
         }
       } else if (rainbowWords.includes(current.word)) {
-        // swap with correct word
+        // Swap logic
         const correctIndex = cells.findIndex(c => c.word === expectedWord && !c.revealed);
         if (correctIndex !== -1 && correctIndex !== index) {
-          // Swap words
-          const tempWord = current.word;
+          // Swap DOM and internal data
+          let tempWord = current.word;
           current.word = cells[correctIndex].word;
           cells[correctIndex].word = tempWord;
 
           current.span.textContent = current.word;
           cells[correctIndex].span.textContent = cells[correctIndex].word;
+
+          // Swap rainbow text class
+          current.span.classList.toggle("rainbowText", rainbowWords.includes(current.word));
+          cells[correctIndex].span.classList.toggle("rainbowText", rainbowWords.includes(cells[correctIndex].word));
+
+          // Reveal the correct one now
+          reveal(index);
+          rainbowSequenceIndex++;
+          if (current.word === "BOY") {
+            showReveal();
+          }
         }
       } else {
         reveal(index);
