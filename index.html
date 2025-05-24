@@ -125,10 +125,11 @@
       "sweet", "blanket", "hug", "soft"
     ];
 
-    let gridWords = [];
     let rainbowSequenceIndex = 0;
     const grid = document.getElementById('grid');
     const revealMessage = document.getElementById('revealMessage');
+
+    const cells = [];
 
     function shuffle(array) {
       for (let i = array.length - 1; i > 0; i--) {
@@ -138,78 +139,81 @@
     }
 
     function setupGrid() {
-      // Fill grid with placeholders
-      let fillWords = [...otherWords];
+      const gridWords = new Array(16).fill(null);
+      gridWords[15] = "BOY"; // BOY is last
+
+      const fillWords = [...otherWords];
       shuffle(fillWords);
 
-      gridWords = new Array(16).fill(null);
-      gridWords[15] = "BOY"; // BOY is always last
-      const rainbowPositions = [];
-
-      // Place IT'S, A, BABY in random spots (not 15)
+      const usedPositions = [15];
       for (let i = 0; i < 3; i++) {
         let pos;
         do {
           pos = Math.floor(Math.random() * 15);
-        } while (gridWords[pos]);
+        } while (usedPositions.includes(pos));
+        usedPositions.push(pos);
         gridWords[pos] = rainbowWords[i];
-        rainbowPositions.push(pos);
       }
 
-      // Fill remaining with filler words
       for (let i = 0; i < gridWords.length; i++) {
         if (!gridWords[i]) {
           gridWords[i] = fillWords.pop();
         }
       }
 
-      // Build grid
       grid.innerHTML = "";
       gridWords.forEach((word, index) => {
         const cell = document.createElement("div");
-        cell.className = "cell";
         const span = document.createElement("span");
         span.textContent = word;
+        cell.className = "cell";
         if (rainbowWords.includes(word)) {
           span.classList.add("rainbowText");
         }
         cell.appendChild(span);
         grid.appendChild(cell);
 
-        cell.addEventListener("click", () => {
-          if (cell.classList.contains("revealed")) return;
+        cells[index] = { word, cell, span, revealed: false };
 
-          if (word === rainbowWords[rainbowSequenceIndex]) {
-            // Correct rainbow word in order
-            revealCell(cell, span);
-            rainbowSequenceIndex++;
-            if (word === "BOY") {
-              showReveal();
-            }
-          } else if (rainbowWords.includes(word)) {
-            // Wrong rainbow word, find correct one and swap
-            const correctIndex = gridWords.findIndex(w => w === rainbowWords[rainbowSequenceIndex]);
-            const currentIndex = index;
-            if (correctIndex !== -1 && correctIndex !== currentIndex) {
-              // Swap
-              const temp = gridWords[currentIndex];
-              gridWords[currentIndex] = gridWords[correctIndex];
-              gridWords[correctIndex] = temp;
-
-              // Rebuild the grid to reflect new positions
-              setupGrid();
-            }
-          } else {
-            revealCell(cell, span);
-          }
-        });
+        cell.addEventListener("click", () => handleClick(index));
       });
     }
 
-    function revealCell(cell, span) {
-      cell.classList.add("revealed");
-      if (span.classList.contains("rainbowText")) {
-        cell.classList.add("rainbowFlashing");
+    function handleClick(index) {
+      const current = cells[index];
+      if (current.revealed) return;
+
+      const expectedWord = rainbowWords[rainbowSequenceIndex];
+
+      if (current.word === expectedWord) {
+        reveal(index);
+        rainbowSequenceIndex++;
+        if (current.word === "BOY") {
+          showReveal();
+        }
+      } else if (rainbowWords.includes(current.word)) {
+        // swap with correct word
+        const correctIndex = cells.findIndex(c => c.word === expectedWord && !c.revealed);
+        if (correctIndex !== -1 && correctIndex !== index) {
+          // Swap words
+          const tempWord = current.word;
+          current.word = cells[correctIndex].word;
+          cells[correctIndex].word = tempWord;
+
+          current.span.textContent = current.word;
+          cells[correctIndex].span.textContent = cells[correctIndex].word;
+        }
+      } else {
+        reveal(index);
+      }
+    }
+
+    function reveal(index) {
+      const c = cells[index];
+      c.revealed = true;
+      c.cell.classList.add("revealed");
+      if (rainbowWords.includes(c.word)) {
+        c.cell.classList.add("rainbowFlashing");
       }
     }
 
@@ -221,17 +225,18 @@
     function launchConfetti() {
       const confetti = document.getElementById("confetti");
       const canvas = document.createElement("canvas");
+      confetti.innerHTML = "";
       confetti.appendChild(canvas);
       const ctx = canvas.getContext("2d");
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       const pieces = [];
 
-      for (let i = 0; i < 200; i++) {
+      for (let i = 0; i < 150; i++) {
         pieces.push({
           x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height - canvas.height,
-          color: "hsl(200, 100%, " + (50 + Math.random() * 30) + "%)",
+          y: Math.random() * -canvas.height,
+          color: "hsl(210, 100%, " + (50 + Math.random() * 30) + "%)",
           size: Math.random() * 6 + 4,
           speed: Math.random() * 3 + 2
         });
@@ -248,6 +253,7 @@
         }
         requestAnimationFrame(draw);
       }
+
       draw();
     }
 
