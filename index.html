@@ -5,212 +5,219 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Trishia & Asraf Gender Reveal Scratch</title>
   <style>
-    body {
+    * {
+      box-sizing: border-box;
+    }
+    body, html {
       margin: 0;
       padding: 0;
       font-family: Arial, sans-serif;
       background: #fff4f9;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
     }
-
     header {
       text-align: center;
-      font-size: 1.5em;
+      font-size: 1.8em;
       font-weight: bold;
-      color: #333;
       padding: 20px;
-      animation: sparkle 1.5s infinite alternate;
+      background: linear-gradient(to right, #ff9ecf, #8ecbff);
+      color: white;
     }
-
-    @keyframes sparkle {
-      from { text-shadow: 0 0 5px #fff, 0 0 10px #ff8de3; }
-      to { text-shadow: 0 0 10px #ff8de3, 0 0 20px #ff8de3; }
-    }
-
-    #mainContainer {
+    .container {
       display: flex;
       flex-direction: row;
-      gap: 20px;
       justify-content: center;
       align-items: flex-start;
       flex-wrap: wrap;
+      padding: 20px;
     }
-
     #grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 5px;
-      width: 320px;
+      max-width: 90vw;
+      margin: 0 auto;
     }
-
     .cell {
       background: silver;
-      border: 2px solid #999;
-      aspect-ratio: 1 / 1;
+      border: 2px solid #ccc;
+      width: 70px;
+      height: 70px;
       display: flex;
       align-items: center;
       justify-content: center;
-      cursor: pointer;
       font-weight: bold;
+      cursor: pointer;
       user-select: none;
       position: relative;
     }
-
     .cell.revealed {
       background: white;
       cursor: default;
     }
-
     .rainbowText {
       background: linear-gradient(to right, red, orange, yellow, green, blue, indigo, violet);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       font-weight: bold;
     }
-
+    .cell.rainbow.revealed {
+      animation: flashBg 0.5s infinite;
+    }
+    @keyframes flashBg {
+      0% { background-color: #ffb6c1; }
+      50% { background-color: #add8e6; }
+      100% { background-color: #ffb6c1; }
+    }
+    .cell span {
+      pointer-events: none; /* Fix: ensure span doesn't block clicks */
+    }
     #message {
       display: none;
+      margin-right: 20px;
       font-size: 1.5em;
-      padding: 20px;
-      background: rgba(255, 255, 255, 0.8);
-      border-radius: 10px;
-      text-align: center;
-      animation: popIn 0.5s ease-out forwards;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 15px;
+      border-radius: 12px;
     }
-
-    @keyframes popIn {
-      0% { transform: scale(0.8); opacity: 0; }
-      100% { transform: scale(1); opacity: 1; }
-    }
-
-    canvas.confetti-canvas {
+    canvas {
       position: fixed;
-      pointer-events: none;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
+      pointer-events: none;
+      z-index: 9999;
     }
-
     @media (max-width: 600px) {
-      #mainContainer {
+      .container {
         flex-direction: column-reverse;
         align-items: center;
       }
       #message {
-        font-size: 1.2em;
+        margin: 20px 0;
+        text-align: center;
+      }
+      .cell {
+        width: 60px;
+        height: 60px;
       }
     }
   </style>
 </head>
 <body>
-
   <header>Trishia & Asraf Gender Reveal Scratch</header>
-
-  <div id="mainContainer">
-    <div id="message">🎉 IT'S A BABY BOY! 💙</div>
+  <div class="container">
+    <div id="message">💙 It's a BOY! 💙</div>
     <div id="grid"></div>
   </div>
-
-  <canvas id="confettiCanvas" class="confetti-canvas"></canvas>
+  <canvas id="confettiCanvas"></canvas>
 
   <script>
-    const revealOrder = ["IT'S", "A", "BABY", "BOY"];
-    const babyWords = [
-      "LOVE", "CUTE", "MOMMY", "DADDY", "SMILE", "TINY", "COZY", "NAP",
-      "MILK", "HUG", "PLAY", "DREAM"
-    ];
-
-    const totalCells = 16;
     const grid = document.getElementById('grid');
     const message = document.getElementById('message');
     const confettiCanvas = document.getElementById('confettiCanvas');
+    const ctx = confettiCanvas.getContext('2d');
 
-    let revealedCount = 0;
-
-    function shuffle(array) {
-      for (let i = array.length - 1; i > 0; i--) {
+    const rainbowSequence = ["IT'S", "A", "BABY", "BOY"];
+    const otherWords = [
+      "MOMMY", "DADDY", "HUGS", "LOVE", "CUTE", "SNUGGLE", "SMILE",
+      "TINY", "MILK", "JOY", "SWEET", "NAP"
+    ];
+    const words = [...rainbowSequence, ...otherWords];
+    
+    // Shuffle otherWords and place rainbow words in order
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
+        [arr[i], arr[j]] = [arr[j], arr[i]];
       }
     }
+    shuffle(otherWords);
 
-    const allWords = [...babyWords];
-    shuffle(allWords);
-    const cellWords = [...revealOrder, ...allWords.slice(0, totalCells - revealOrder.length)];
-    shuffle(cellWords);
+    const finalGridWords = [];
+    let rIndex = 0;
+    for (let i = 0; i < 16; i++) {
+      if (rIndex < rainbowSequence.length) {
+        finalGridWords.push(rainbowSequence[rIndex++]);
+      } else {
+        finalGridWords.push(otherWords.pop());
+      }
+    }
+    shuffle(finalGridWords);
 
-    cellWords.forEach(word => {
+    let nextRevealIndex = 0;
+
+    finalGridWords.forEach(word => {
       const cell = document.createElement('div');
       cell.className = 'cell';
       const span = document.createElement('span');
       span.textContent = word;
+      if (rainbowSequence.includes(word)) {
+        cell.classList.add('rainbow');
+        span.classList.add('rainbowText');
+      }
       span.style.visibility = 'hidden';
-      if (revealOrder.includes(word)) span.classList.add('rainbowText');
       cell.appendChild(span);
       grid.appendChild(cell);
 
       cell.addEventListener('click', () => {
         if (cell.classList.contains('revealed')) return;
 
-        const expectedWord = revealOrder[revealedCount];
-        if (revealOrder.includes(word) && word === expectedWord) {
-          cell.classList.add('revealed');
-          span.style.visibility = 'visible';
-          revealedCount++;
+        // If it's a rainbow word, enforce order
+        if (rainbowSequence.includes(word)) {
+          if (word !== rainbowSequence[nextRevealIndex]) return;
+          nextRevealIndex++;
+        }
 
-          if (word === "BOY") {
-            message.style.display = 'block';
-            launchConfetti();
-          }
-        } else if (!revealOrder.includes(word)) {
-          cell.classList.add('revealed');
-          span.style.visibility = 'visible';
+        cell.classList.add('revealed');
+        span.style.visibility = 'visible';
+
+        // Final reveal (BOY)
+        if (word === "BOY") {
+          message.style.display = 'block';
+          startConfetti();
         }
       });
     });
 
-    // Confetti
-    function launchConfetti() {
-      const confetti = confettiCanvas.getContext('2d');
-      const particles = [];
-
-      for (let i = 0; i < 200; i++) {
-        particles.push({
-          x: Math.random() * confettiCanvas.width,
-          y: Math.random() * confettiCanvas.height - confettiCanvas.height,
-          dx: Math.random() * 4 - 2,
-          dy: Math.random() * 3 + 2,
-          size: Math.random() * 4 + 2,
-          color: `hsl(${200 + Math.random() * 40}, 100%, 60%)`
+    // Confetti effect
+    let confettiParticles = [];
+    function startConfetti() {
+      resizeCanvas();
+      for (let i = 0; i < 100; i++) {
+        confettiParticles.push({
+          x: Math.random() * window.innerWidth,
+          y: Math.random() * window.innerHeight,
+          r: Math.random() * 6 + 4,
+          d: Math.random() * 100 + 10,
+          color: "hsl(" + Math.random() * 360 + ", 100%, 50%)",
+          tilt: Math.random() * 10 - 10
         });
       }
+      requestAnimationFrame(drawConfetti);
+    }
 
-      function draw() {
-        confetti.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
-        for (let p of particles) {
-          confetti.fillStyle = p.color;
-          confetti.fillRect(p.x, p.y, p.size, p.size);
-          p.x += p.dx;
-          p.y += p.dy;
-          if (p.y > confettiCanvas.height) p.y = 0;
+    function drawConfetti() {
+      ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+      confettiParticles.forEach(p => {
+        ctx.beginPath();
+        ctx.fillStyle = p.color;
+        ctx.moveTo(p.x, p.y);
+        ctx.ellipse(p.x, p.y, p.r, p.r / 2, p.tilt, 0, Math.PI * 2);
+        ctx.fill();
+        p.y += Math.cos(p.d);
+        p.x += Math.sin(p.d);
+        if (p.y > window.innerHeight) {
+          p.y = 0;
+          p.x = Math.random() * window.innerWidth;
         }
-        requestAnimationFrame(draw);
-      }
-
-      resizeCanvas();
-      draw();
+      });
+      requestAnimationFrame(drawConfetti);
     }
 
     function resizeCanvas() {
       confettiCanvas.width = window.innerWidth;
       confettiCanvas.height = window.innerHeight;
     }
-
     window.addEventListener('resize', resizeCanvas);
   </script>
-
 </body>
 </html>
